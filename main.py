@@ -48,6 +48,22 @@ class ReconciliationRecord(Base):
 
 Base.metadata.create_all(bind=engine)
 
+# Auto-migrate: Add user_id to clients if it doesn't exist from the old version
+from sqlalchemy import text
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE clients ADD COLUMN user_id INTEGER REFERENCES users(id)"))
+        conn.commit()
+except Exception:
+    pass # Column already exists or table structure is fine
+    
+# Auto-migrate: Add auth_provider to users if it doesn't exist
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN auth_provider VARCHAR DEFAULT 'local'"))
+        conn.commit()
+except Exception:
+    pass
 # --- FLASK APP ---
 app = Flask(__name__, static_folder=".")
 
