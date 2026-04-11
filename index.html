@@ -746,7 +746,7 @@ function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, logout }}>
+    <AuthContext.Provider value={{ user, token, logout, login }}>
       <ClientContext.Provider value={{ clients, activeClient, setActiveClient, refreshClients: fetchClients }}>
         <MainLayout />
       </ClientContext.Provider>
