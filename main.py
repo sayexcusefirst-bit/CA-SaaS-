@@ -134,7 +134,10 @@ def login():
     
     # Internal auth logic happens here
     # Create the secure JWT access token
-    access_token = create_access_token(identity={"email": email, "role": "admin"})
+    access_token = create_access_token(
+        identity=email, 
+        additional_claims={"role": "admin", "name": "Admin CA"}
+    )
     
     return jsonify({
         "user": {"name": "Admin CA", "email": email, "role": "admin"},
