@@ -624,6 +624,8 @@ function ReconDashboard() {
 
 function MainLayout() {
   const [currentView, setCurrentView] = useState('dashboard');
+  const { user } = useContext(AuthContext);
+  const { activeClient } = useContext(ClientContext);
 
   return (
     <div className="app-container">
