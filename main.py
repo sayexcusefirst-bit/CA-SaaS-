@@ -12,10 +12,18 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
 # --- SQLALCHEMY DB SETUP ---
-# App uses ephemeral local DB on Render free tier
-DATABASE_URL = "sqlite:///./ca_saas.db"
+# Supports switching to a permanent managed Postgres database (like Supabase/Neon)
+raw_db_url = os.environ.get("DATABASE_URL", "sqlite:///./ca_saas.db")
+# SQLAlchemy 1.4+ requires 'postgresql://' instead of 'postgres://'
+if raw_db_url.startswith("postgres://"):
+    raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+DATABASE_URL = raw_db_url
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+    
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
