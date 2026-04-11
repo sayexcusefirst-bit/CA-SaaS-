@@ -6,6 +6,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11"
+      - key: GOOGLE_CLIENT_ID
+        value: "716538344271-vgaduq0nsn6g4ip17fktsaloe9s3u59p.apps.googleusercontent.com"
     startCommand: "gunicorn main:app"
 
     plan: free
