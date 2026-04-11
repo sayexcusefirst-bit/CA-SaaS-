@@ -23,6 +23,9 @@
   <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+  <!-- Google Identity -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <!-- Styles -->
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -56,21 +59,65 @@ const Icons = {
 
 function LoginScreen() {
   const { login } = useContext(AuthContext);
+  const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    fetch('/api/v1/config').then(r=>r.json()).then(d => {
+        if (d.google_client_id && window.google) {
+            window.google.accounts.id.initialize({
+                client_id: d.google_client_id,
+                callback: handleGoogleResponse
+            });
+            window.google.accounts.id.renderButton(
+                document.getElementById("googleSignInDiv"),
+                { theme: "outline", size: "large", width: "100%" }
+            );
+        }
+    }).catch(e=>console.log("Config fetch error"));
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+        const res = await fetch('/api/v1/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            login(data.user, data.token);
+        } else {
+            setErrorMsg(data.msg || "Google login failed");
+        }
+    } catch(e) {
+        setErrorMsg("Network error during Google login");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    const endpoint = isSignup ? '/api/v1/auth/signup' : '/api/v1/auth/login';
+    const payload = isSignup ? { name, email, password } : { email, password };
+    
     try {
-        const res = await fetch('/api/v1/auth/login', {
+        const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
-        login(data.user, data.token);
+        if (res.ok) {
+            login(data.user, data.token);
+        } else {
+            setErrorMsg(data.msg || "Authentication failed.");
+        }
     } catch (e) {
-        alert("Login failed.");
+        setErrorMsg("Network error.");
     }
   };
 
@@ -81,7 +128,23 @@ function LoginScreen() {
           <h1><Icons.Shield /> TaxAI</h1>
           <p style={{ color: 'var(--text-muted)' }}>Premium SaaS for Indian Chartered Accountants</p>
         </div>
+        
+        {errorMsg && <div style={{ color: '#FCA5A5', background: 'rgba(252, 165, 165, 0.1)', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem', textAlign: 'center', fontSize: '0.875rem' }}>{errorMsg}</div>}
+        
         <form onSubmit={handleSubmit}>
+          {isSignup && (
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="CA. John Doe" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required 
+              />
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label">Email Address</label>
             <input 
@@ -104,10 +167,24 @@ function LoginScreen() {
               required 
             />
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem' }}>
-            Sign In to Workspace
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem' }}>
+            {isSignup ? "Create Secure Account" : "Sign In to Workspace"}
           </button>
         </form>
+        
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setIsSignup(!isSignup)}>
+                {isSignup ? "Already have an account? Sign In" : "New CA? Create Account"}
+            </span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', margin: '1rem 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+            <span style={{ padding: '0 1rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+        </div>
+        
+        <div id="googleSignInDiv" style={{ display: 'flex', justifyContent: 'center' }}></div>
       </div>
     </div>
   );
@@ -153,31 +230,81 @@ function Sidebar({ currentView, setCurrentView }) {
 }
 
 function Topbar() {
-  const { clients, activeClient, setActiveClient } = useContext(ClientContext);
-  const { user } = useContext(AuthContext);
+  const { clients, activeClient, setActiveClient, refreshClients } = useContext(ClientContext);
+  const { user, token } = useContext(AuthContext);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientGstin, setNewClientGstin] = useState('');
 
-  if (!activeClient) return null;
+  const handleAddClient = async (e) => {
+      e.preventDefault();
+      try {
+          const res = await fetch('/api/v1/clients', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ name: newClientName, gstin: newClientGstin })
+          });
+          if (res.ok) {
+              await refreshClients();
+              setShowAddModal(false);
+              setNewClientName('');
+              setNewClientGstin('');
+          } else {
+              alert("Failed to add client.");
+          }
+      } catch(e) {
+          alert("Network error.");
+      }
+  };
 
   return (
     <div className="topbar">
       <div className="client-selector-container">
         <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Context:</span>
-        <select 
-          className="client-select" 
-          value={activeClient.id}
-          onChange={(e) => setActiveClient(clients.find(c => c.id === e.target.value))}
-        >
-          {clients.map(client => (
-            <option key={client.id} value={client.id}>
-              {client.name} ({client.gstin})
-            </option>
-          ))}
-        </select>
+        {clients.length > 0 ? (
+            <select 
+              className="client-select" 
+              value={activeClient?.id || ""}
+              onChange={(e) => setActiveClient(clients.find(c => c.id === e.target.value))}
+            >
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.name} ({client.gstin})
+                </option>
+              ))}
+            </select>
+        ) : (
+            <span style={{ fontSize: '0.875rem', color: '#FCA5A5' }}>No Clients Configured</span>
+        )}
+        <button className="btn btn-secondary" style={{ padding: '0.4rem 0.75rem', marginLeft: '0.5rem' }} onClick={() => setShowAddModal(true)}>+ Add Client</button>
       </div>
+      
+      {showAddModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+              <div className="card animate-fade-in" style={{ width: '400px' }}>
+                  <div className="card-header"><div className="card-title">Add New Client</div></div>
+                  <form onSubmit={handleAddClient}>
+                      <div className="form-group">
+                          <label className="form-label">Client Name</label>
+                          <input type="text" className="form-input" value={newClientName} onChange={e=>setNewClientName(e.target.value)} required />
+                      </div>
+                      <div className="form-group">
+                          <label className="form-label">GSTIN</label>
+                          <input type="text" className="form-input" value={newClientGstin} onChange={e=>setNewClientGstin(e.target.value)} required />
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                          <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAddModal(false)}>Cancel</button>
+                          <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Client</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{user.name}</span>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-          CA
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>
+          {user.name.substring(0, 2)}
         </div>
       </div>
     </div>
@@ -427,15 +554,21 @@ function MainLayout() {
         <div className="content-area">
           {currentView === 'dashboard' && (
             <div className="animate-fade-in">
-              <h1>Welcome back, CA Admin!</h1>
+              <h1>Welcome back, {user.name.split(' ')[0]}!</h1>
               <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Here's the overview for your active client context.</p>
-              <ReconDashboard />
+              {activeClient ? <ReconDashboard /> : (
+                  <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                      <Icons.Users />
+                      <h3 style={{ marginTop: '1rem' }}>No Clients Yet</h3>
+                      <p style={{ color: 'var(--text-muted)' }}>Add your first client using the button in the top bar to initialize your workspace.</p>
+                  </div>
+              )}
             </div>
           )}
-          {currentView === 'upload' && (
+          {currentView === 'upload' && activeClient && (
             <UploadHub onUploadComplete={() => setCurrentView('recon')} />
           )}
-          {currentView === 'recon' && (
+          {currentView === 'recon' && activeClient && (
             <ReconDashboard />
           )}
           {(currentView === 'clients' || currentView === 'settings') && (
@@ -469,24 +602,34 @@ function App() {
     }
   }, []);
 
-  useEffect(() => {
+  const fetchClients = () => {
       if(token) {
-          fetch('/api/v1/clients', {
+          return fetch('/api/v1/clients', {
               headers: { 'Authorization': `Bearer ${token}` }
           })
             .then(res => {
-                if(res.status === 401) throw new Error("Unauthorized");
+                if(res.status === 401 || res.status === 422) throw new Error("Unauthorized");
                 return res.json();
             })
             .then(data => {
                 setClients(data.clients);
-                if(data.clients.length > 0) setActiveClient(data.clients[0]);
+                // Maintain active client selection if possible
+                if (data.clients.length > 0) {
+                     setActiveClient(prev => prev ? (data.clients.find(c => c.id === prev.id) || data.clients[0]) : data.clients[0]);
+                } else {
+                     setActiveClient(null);
+                }
             })
             .catch(err => {
                 console.error("Auth expired", err);
                 logout();
             });
       }
+      return Promise.resolve();
+  };
+
+  useEffect(() => {
+      fetchClients();
   }, [token]);
 
   const login = (userData, accessToken) => {
@@ -511,13 +654,16 @@ function App() {
     );
   }
   
-  if (clients.length === 0 || !activeClient) {
+  // Replaced the blocking state for 0 clients so users can reach the empty dashboard
+  if (clients.length === 0 && token && user && activeClient === null) {
+     // Rendering layout with empty state
+  } else if (!activeClient && clients.length > 0) {
       return <div>Loading Workspace...</div>;
   }
 
   return (
     <AuthContext.Provider value={{ user, token, logout }}>
-      <ClientContext.Provider value={{ clients, activeClient, setActiveClient }}>
+      <ClientContext.Provider value={{ clients, activeClient, setActiveClient, refreshClients: fetchClients }}>
         <MainLayout />
       </ClientContext.Provider>
     </AuthContext.Provider>
