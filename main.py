@@ -200,6 +200,34 @@ def google_auth():
             db.close()
     except ValueError as e:
         return jsonify({"msg": "Invalid Google token"}), 401
+        
+@app.route("/api/v1/user/profile", methods=["PUT"])
+@jwt_required()
+def update_profile():
+    user_id = int(get_jwt_identity())
+    data = request.get_json()
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+            
+        if "name" in data:
+            user.name = data["name"]
+        if "password" in data and data["password"]:
+            user.password_hash = generate_password_hash(data["password"])
+            user.auth_provider = "local" # If they add a password to Google account, they can now login locally
+            
+        db.commit()
+        
+        # Issue a fresh token with updated claims
+        access_token = create_access_token(identity=str(user.id), additional_claims={"name": user.name, "email": user.email})
+        return jsonify({
+            "user": {"id": user.id, "name": user.name, "email": user.email},
+            "token": access_token
+        })
+    finally:
+        db.close()
 
 @app.route("/api/v1/config", methods=["GET"])
 def get_config():

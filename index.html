@@ -229,7 +229,7 @@ function Sidebar({ currentView, setCurrentView }) {
   );
 }
 
-function Topbar() {
+function Topbar({ setCurrentView }) {
   const { clients, activeClient, setActiveClient, refreshClients } = useContext(ClientContext);
   const { user, token } = useContext(AuthContext);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -301,11 +301,90 @@ function Topbar() {
           </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{user.name}</span>
+      <div 
+        style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer' }}
+        onClick={() => setCurrentView('settings')}
+        title="Edit Profile Settings"
+      >
+        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{user.name || "CA User"}</span>
         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', textTransform: 'uppercase' }}>
-          {user.name.substring(0, 2)}
+          {(user.name || "CA User").substring(0, 2)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSettings() {
+  const { user, token, login } = useContext(AuthContext);
+  const [name, setName] = useState(user.name || '');
+  const [password, setPassword] = useState('');
+  const [msg, setMsg] = useState({ text: '', type: '' });
+  
+  const handleUpdate = async (e) => {
+      e.preventDefault();
+      setMsg({ text: 'Saving...', type: 'info' });
+      const payload = { name };
+      if (password) payload.password = password;
+      
+      try {
+          const res = await fetch('/api/v1/user/profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (res.ok) {
+              login(data.user, data.token); // Refresh local identity state
+              setMsg({ text: 'Profile updated successfully!', type: 'success' });
+              setPassword('');
+          } else {
+              setMsg({ text: data.msg || 'Update failed', type: 'error' });
+          }
+      } catch (err) {
+          setMsg({ text: 'Network connection error', type: 'error' });
+      }
+  };
+
+  return (
+    <div className="card animate-fade-in" style={{ maxWidth: '600px' }}>
+      <div className="card-header">
+        <div className="card-title"><Icons.Settings /> Profile & Firm Settings</div>
+      </div>
+      <div style={{ padding: '0 0.5rem 1rem 0.5rem' }}>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Update your personal profile and account credentials.</p>
+        
+        {msg.text && (
+            <div style={{ 
+                padding: '0.75rem', 
+                borderRadius: '0.375rem', 
+                marginBottom: '1.5rem', 
+                fontSize: '0.875rem',
+                background: msg.type === 'error' ? 'rgba(252, 165, 165, 0.1)' : msg.type === 'success' ? 'rgba(74, 222, 128, 0.1)' : 'rgba(148, 163, 184, 0.1)',
+                color: msg.type === 'error' ? '#FCA5A5' : msg.type === 'success' ? '#4ade80' : 'var(--text-color)'
+            }}>
+                {msg.text}
+            </div>
+        )}
+
+        <form onSubmit={handleUpdate}>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input type="email" className="form-input" value={user.email} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Email cannot be changed directly.</span>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Display Name</label>
+            <input type="text" className="form-input" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+          <div className="form-group">
+             <label className="form-label">New Password (Optional)</label>
+             <input type="password" className="form-input" value={password} onChange={e => setPassword(e.target.value)} placeholder="Leave blank to keep current password" />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }}>
+             Save Changes
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -550,11 +629,11 @@ function MainLayout() {
     <div className="app-container">
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
       <div className="main-content">
-        <Topbar />
+        <Topbar setCurrentView={setCurrentView} />
         <div className="content-area">
           {currentView === 'dashboard' && (
             <div className="animate-fade-in">
-              <h1>Welcome back, {user.name.split(' ')[0]}!</h1>
+              <h1>Welcome back, {(user.name || "User").split(' ')[0]}!</h1>
               <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Here's the overview for your active client context.</p>
               {activeClient ? <ReconDashboard /> : (
                   <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
@@ -571,12 +650,15 @@ function MainLayout() {
           {currentView === 'recon' && activeClient && (
             <ReconDashboard />
           )}
-          {(currentView === 'clients' || currentView === 'settings') && (
+          {currentView === 'settings' && (
+             <ProfileSettings />
+          )}
+          {currentView === 'clients' && (
             <div className="card animate-fade-in">
               <div className="card-header">
                 <div className="card-title">Module Under Construction</div>
               </div>
-              <p>This section is part of the extended SaaS functionality.</p>
+              <p>Client Directory is part of the extended SaaS functionality.</p>
             </div>
           )}
         </div>
