@@ -283,6 +283,28 @@ def create_client():
     finally:
         db.close()
 
+@app.route("/api/v1/clients/<client_id>", methods=["DELETE"])
+@jwt_required()
+def delete_client(client_id):
+    user_id = int(get_jwt_identity())
+    db = SessionLocal()
+    try:
+        client = db.query(Client).filter(Client.id == client_id, Client.user_id == user_id).first()
+        if not client:
+            return jsonify({"msg": "Client not found"}), 404
+            
+        # Delete associated reconciliation records
+        db.query(ReconciliationRecord).filter(ReconciliationRecord.client_id == client_id).delete()
+        # Delete the client
+        db.delete(client)
+        db.commit()
+        return jsonify({"msg": "Client deleted successfully"}), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"msg": str(e)}), 500
+    finally:
+        db.close()
+
 @app.route("/api/v1/reconciliation/results/<client_id>", methods=["GET"])
 @jwt_required()
 def get_reconciliation(client_id):

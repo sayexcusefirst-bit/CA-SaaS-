@@ -650,6 +650,98 @@ function ReconDashboard() {
   );
 }
 
+function ClientDirectory({ setCurrentView }) {
+  const { clients, activeClient, setActiveClient, refreshClients } = useContext(ClientContext);
+  const { token } = useContext(AuthContext);
+  const [deleting, setDeleting] = useState(null);
+
+  const handleDelete = async (clientId) => {
+      if (!window.confirm("Are you sure you want to permanently delete this client and all associated reconciliation data?")) return;
+      setDeleting(clientId);
+      try {
+          const res = await fetch(`/api/v1/clients/${clientId}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+              await refreshClients();
+              if (activeClient && activeClient.id === clientId) {
+                  setCurrentView('dashboard'); // Kick out to dashboard if they deleted the active client
+              }
+          } else {
+              alert("Failed to delete client.");
+          }
+      } catch (err) {
+          alert("Network connection error while deleting.");
+      } finally {
+          setDeleting(null);
+      }
+  };
+
+  const handleSelect = (client) => {
+      setActiveClient(client);
+      setCurrentView('dashboard');
+  };
+
+  // Helper inside to generate consistent colors (optional simple hash)
+  const getInitials = (name) => name ? name.substring(0, 2).toUpperCase() : '??';
+
+  return (
+    <div className="animate-fade-in" style={{ padding: '0 2rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.5rem' }}>Client Directory</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Manage your firm's clients and workspaces.</p>
+        </div>
+      </div>
+
+      <div className="stats-grid">
+         {clients.length === 0 ? (
+            <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem' }}>
+              <Icons.Users />
+              <h3 style={{ marginTop: '1rem' }}>No Clients in Directory</h3>
+              <p style={{ color: 'var(--text-muted)' }}>Use the '+ Add Client' button in the top bar to initialize a workspace.</p>
+            </div>
+         ) : clients.map(client => (
+            <div key={client.id} className="card" style={{ position: 'relative', border: activeClient && activeClient.id === client.id ? '2px solid var(--primary-color)' : '' }}>
+                {activeClient && activeClient.id === client.id && (
+                    <div style={{ position: 'absolute', top: '-10px', right: '15px', background: 'var(--primary-color)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>Active Workspace</div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div className="avatar" style={{ background: 'var(--primary-color)', color: 'white', width: '50px', height: '50px', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                        {getInitials(client.name)}
+                    </div>
+                    <div>
+                        <h3 style={{ margin: '0 0 0.2rem 0', wordBreak: 'break-word' }}>{client.name}</h3>
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem', fontFamily: 'monospace' }}>GSTIN: {client.gstin}</p>
+                    </div>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                       className={`btn ${activeClient && activeClient.id === client.id ? 'btn-secondary' : 'btn-primary'}`} 
+                       style={{ flex: 1 }}
+                       onClick={() => handleSelect(client)}
+                    >
+                       {activeClient && activeClient.id === client.id ? 'Viewing' : 'Open Workspace'}
+                    </button>
+                    <button 
+                       className="btn btn-secondary" 
+                       style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)' }}
+                       onClick={() => handleDelete(client.id)}
+                       disabled={deleting === client.id}
+                       title="Delete Client"
+                    >
+                        {deleting === client.id ? '...' : <Icons.Trash2 />}
+                    </button>
+                </div>
+            </div>
+         ))}
+      </div>
+    </div>
+  );
+}
+
 function MainLayout() {
   const [currentView, setCurrentView] = useState(() => localStorage.getItem('ca_current_view') || 'dashboard');
 
@@ -688,12 +780,7 @@ function MainLayout() {
              <ProfileSettings />
           )}
           {currentView === 'clients' && (
-            <div className="card animate-fade-in">
-              <div className="card-header">
-                <div className="card-title">Module Under Construction</div>
-              </div>
-              <p>Client Directory is part of the extended SaaS functionality.</p>
-            </div>
+             <ClientDirectory setCurrentView={setCurrentView} />
           )}
         </div>
       </div>
