@@ -514,6 +514,7 @@ function ReconDashboard() {
   const { token } = useContext(AuthContext);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL', 'MISMATCH', 'ANOMALY'
 
   useEffect(() => {
     if (!activeClient) return;
@@ -550,24 +551,43 @@ function ReconDashboard() {
   const mismatches = data.filter(d => d.status === 'Mismatch' || d.status === 'Missing in 3B').length;
   const anomalies = data.filter(d => d.status === 'Anomaly').length;
 
+  const filteredData = data.filter(row => {
+      if (activeFilter === 'ALL') return true;
+      if (activeFilter === 'MISMATCH') return row.status === 'Mismatch' || row.status === 'Missing in 3B';
+      if (activeFilter === 'ANOMALY') return row.status === 'Anomaly';
+      return true;
+  });
+
   return (
     <div className="animate-fade-in">
-      <div className="stats-grid">
-        <div className="stat-card">
+      <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+        <div 
+          className={`stat-card ${activeFilter === 'ALL' ? 'active-filter' : ''}`} 
+          style={{ cursor: 'pointer', border: activeFilter === 'ALL' ? '2px solid var(--primary-color)' : '' }}
+          onClick={() => setActiveFilter('ALL')}
+        >
           <div className="stat-icon primary"><Icons.FileText /></div>
           <div className="stat-details">
             <h3>Total Invoices Processed</h3>
             <p>{data.length * 12}</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div 
+          className={`stat-card ${activeFilter === 'MISMATCH' ? 'active-filter' : ''}`}
+          style={{ cursor: 'pointer', border: activeFilter === 'MISMATCH' ? '2px solid #FCA5A5' : '' }}
+          onClick={() => setActiveFilter('MISMATCH')}
+        >
           <div className="stat-icon danger"><Icons.AlertTriangle /></div>
           <div className="stat-details">
             <h3>GSTR Mismatches</h3>
             <p>{mismatches}</p>
           </div>
         </div>
-        <div className="stat-card">
+        <div 
+          className={`stat-card ${activeFilter === 'ANOMALY' ? 'active-filter' : ''}`}
+          style={{ cursor: 'pointer', border: activeFilter === 'ANOMALY' ? '2px solid #FCD34D' : '' }}
+          onClick={() => setActiveFilter('ANOMALY')}
+        >
           <div className="stat-icon warning"><Icons.Shield /></div>
           <div className="stat-details">
             <h3>Bank Anomalies</h3>
@@ -578,7 +598,10 @@ function ReconDashboard() {
 
       <div className="card">
          <div className="card-header">
-           <div className="card-title"><Icons.CheckCircle /> AI Reconciliation Results ({activeClient.name})</div>
+           <div className="card-title">
+             <Icons.CheckCircle /> Authentication Results 
+             {activeFilter !== 'ALL' && <span style={{ marginLeft: '1rem', fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>Filtered by: {activeFilter}</span>}
+           </div>
            <button className="btn btn-secondary" onClick={exportToExcel}>
              <Icons.Download /> Export to Excel
            </button>
@@ -597,7 +620,7 @@ function ReconDashboard() {
                </tr>
              </thead>
              <tbody>
-               {data.map(row => (
+               {filteredData.map(row => (
                  <tr key={row.id}>
                    <td><strong>{row.type}</strong></td>
                    <td>{row.invoice}</td>
@@ -609,6 +632,11 @@ function ReconDashboard() {
                    </td>
                  </tr>
                ))}
+               {filteredData.length === 0 && data.length > 0 && (
+                   <tr>
+                       <td colSpan="6" style={{textAlign: 'center', padding: '2rem'}}>No records match this filter.</td>
+                   </tr>
+               )}
                {data.length === 0 && (
                    <tr>
                        <td colSpan="6" style={{textAlign: 'center', padding: '2rem'}}>No records found for this client. Please upload documents.</td>
@@ -623,7 +651,11 @@ function ReconDashboard() {
 }
 
 function MainLayout() {
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(() => localStorage.getItem('ca_current_view') || 'dashboard');
+
+  useEffect(() => {
+      localStorage.setItem('ca_current_view', currentView);
+  }, [currentView]);
   const { user } = useContext(AuthContext);
   const { activeClient } = useContext(ClientContext);
 
@@ -686,6 +718,10 @@ function App() {
     }
   }, []);
 
+  useEffect(() => {
+      if (activeClient) localStorage.setItem('ca_active_client', activeClient.id);
+  }, [activeClient]);
+
   const fetchClients = () => {
       if(token) {
           return fetch('/api/v1/clients', {
@@ -699,7 +735,10 @@ function App() {
                 setClients(data.clients);
                 // Maintain active client selection if possible
                 if (data.clients.length > 0) {
-                     setActiveClient(prev => prev ? (data.clients.find(c => c.id === prev.id) || data.clients[0]) : data.clients[0]);
+                     const savedClientId = localStorage.getItem('ca_active_client');
+                     let targetClient = null;
+                     if (savedClientId) targetClient = data.clients.find(c => c.id === savedClientId);
+                     setActiveClient(targetClient || data.clients[0]);
                 } else {
                      setActiveClient(null);
                 }
@@ -728,6 +767,8 @@ function App() {
     setToken(null);
     localStorage.removeItem('ca_session');
     localStorage.removeItem('ca_token');
+    localStorage.removeItem('ca_current_view');
+    localStorage.removeItem('ca_active_client');
   };
 
   if (!user || !token) {
