@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TaxAI | Chartered Accountants SaaS</title>
+  <title>ReconFlow | CA Reconciliation Reimagined</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +27,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Styles -->
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div id="root"></div>
@@ -58,7 +58,61 @@ const Icons = {
 
 // --- Components ---
 
-function LoginScreen() {
+function LandingPage({ onGetStarted }) {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <nav className="landing-navbar">
+        <div className="landing-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <img src="./logo.png" alt="ReconFlow Logo" style={{ width: '32px', height: '32px', borderRadius: '8px' }} /> ReconFlow
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <a href="#" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Features</a>
+          <a href="#" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Pricing</a>
+          <button className="btn btn-primary" onClick={onGetStarted}>Sign In / Get Started</button>
+        </div>
+      </nav>
+
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Eliminate Next-Month <br/><span className="text-gradient">GST Surprises</span></h1>
+          <p className="hero-subtitle">
+            CAs waste hundreds of hours manually comparing Excel sheets. ReconFlow eliminates manual data-entry by mathematically computing mismatches between 2B, 3B, and Bank Ledgers instantly.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <button className="btn btn-primary" style={{ padding: '0.875rem 2rem', fontSize: '1rem' }} onClick={onGetStarted}>Start Your Firm's Workspace</button>
+            <button className="btn btn-secondary" style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}>See Demo</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="marketing-features" id="features">
+        <div className="marketing-grid">
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.CheckCircle /></div>
+            <h3>Smart Invoice Matching</h3>
+            <p>Pinpoints the exact mathematical invoice mismatches between your clients' GSTR-2B and GSTR-3B instantly. Stop dragging your finger down printed bank sheets.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.Users /></div>
+            <h3>Multi-Tenant Architecture</h3>
+            <p>A secure, completely isolated workspace to manage hundreds of distinct business clients in one powerful dashboard without ever crossing their data streams.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.AlertTriangle /></div>
+            <h3>Bank Anomaly Detection</h3>
+            <p>Automatically flags bank transactions that don't algorithmically align with uploaded statements or GST claims so your juniors don't miss a single digit.</p>
+          </div>
+        </div>
+      </div>
+
+      <footer className="app-footer">
+        <p>&copy; 2026 ReconFlow. Built exclusively for Indian Chartered Accountants.</p>
+      </footer>
+    </div>
+  );
+}
+
+function LoginScreen({ onBack }) {
   const { login } = useContext(AuthContext);
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
@@ -124,9 +178,20 @@ function LoginScreen() {
 
   return (
     <div className="auth-wrapper">
+        {onBack && (
+            <button 
+               className="btn btn-secondary" 
+               style={{ position: 'absolute', top: '2rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+               onClick={onBack}
+            >
+               <Icons.LogOut /> Back to Home
+            </button>
+        )}
       <div className="auth-card animate-fade-in">
         <div className="auth-header">
-          <h1><Icons.Shield /> TaxAI</h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+              <img src="./logo.png" alt="ReconFlow Logo" style={{ width: '40px', height: '40px', borderRadius: '8px' }} /> ReconFlow
+          </h1>
           <p style={{ color: 'var(--text-muted)' }}>Premium SaaS for Indian Chartered Accountants</p>
         </div>
         
@@ -204,8 +269,8 @@ function Sidebar({ currentView, setCurrentView }) {
 
   return (
     <div className="sidebar">
-      <div className="sidebar-header">
-        <Icons.Shield /> TaxAI Hub
+      <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <img src="./logo.png" alt="ReconFlow Logo" style={{ width: '28px', height: '28px', borderRadius: '6px' }} /> ReconFlow Hub
       </div>
       <div className="sidebar-nav">
         {menuItems.map(item => {
@@ -790,6 +855,7 @@ function MainLayout() {
 }
 
 function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [clients, setClients] = useState([]);
@@ -860,9 +926,12 @@ function App() {
   };
 
   if (!user || !token) {
+    if (showLanding) {
+        return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+    }
     return (
       <AuthContext.Provider value={{ login }}>
-        <LoginScreen />
+        <LoginScreen onBack={() => setShowLanding(true)} />
       </AuthContext.Provider>
     );
   }
