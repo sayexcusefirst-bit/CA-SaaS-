@@ -9,7 +9,7 @@ services:
       - key: GOOGLE_CLIENT_ID
         value: "716538344271-vgaduq0nsn6g4ip17fktsaloe9s3u59p.apps.googleusercontent.com"
       - key: DATABASE_URL
-        value: "postgresql://neondb_owner:npg_QbLdWzZti7E8@ep-wild-tooth-a46pgwps-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
+        value: "postgresql://postgres:sayexcusefirst2@db.simimchrlxtpfpygbetg.supabase.co:5432/postgres"
     startCommand: "gunicorn main:app"
 
     plan: free
