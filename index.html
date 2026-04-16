@@ -66,8 +66,8 @@ function LandingPage({ onGetStarted }) {
           <img src="./logo.png" alt="ReconFlow Logo" style={{ width: '32px', height: '32px', borderRadius: '8px' }} /> ReconFlow
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <a href="#" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Features</a>
-          <a href="#" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Pricing</a>
+          <a href="#features" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Features</a>
+          <a href="#pricing" style={{ color: 'var(--text-main)', fontWeight: 500 }}>Pricing</a>
           <button className="btn btn-primary" onClick={onGetStarted}>Sign In / Get Started</button>
         </div>
       </nav>
@@ -101,6 +101,67 @@ function LandingPage({ onGetStarted }) {
             <div className="feature-icon-wrapper"><Icons.AlertTriangle /></div>
             <h3>Bank Anomaly Detection</h3>
             <p>Automatically flags bank transactions that don't algorithmically align with uploaded statements or GST claims so your juniors don't miss a single digit.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.Download /></div>
+            <h3>Excel Export Ready</h3>
+            <p>One-click download of comprehensive mismatch reports in standard Excel format, pre-formatted for sharing with your clients directly.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.Shield /></div>
+            <h3>Bank-Grade Security</h3>
+            <p>Your firm's and clients' financial data remains completely confidential. We employ industry-standard encryption for all data at rest and in transit.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon-wrapper"><Icons.PieChart /></div>
+            <h3>Advanced Dashboard</h3>
+            <p>Get a bird's-eye view of all your client reconciliations in real-time. Track pending mismatches and unhandled anomalies effortlessly.</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="pricing" style={{ padding: '5rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '2.5rem', marginBottom: '1rem', textAlign: 'center' }}>Transparent Pricing for CAs</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '3rem', textAlign: 'center', maxWidth: '600px' }}>Choose the perfect plan for your firm. No hidden fees or surprise charges.</p>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', width: '100%', maxWidth: '1000px' }}>
+          <div className="feature-card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3>Starter</h3>
+            <div style={{ margin: '1.5rem 0' }}><span style={{ fontSize: '3rem', fontWeight: 700 }}>₹999</span><span style={{ color: 'var(--text-muted)' }}>/month</span></div>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Perfect for solo practitioners and small teams.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', flex: 1 }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Up to 50 Clients</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> GSTR-2B & 3B Matching</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Excel Report Exports</li>
+            </ul>
+            <button className="btn btn-secondary" style={{ width: '100%', padding: '0.875rem' }} onClick={onGetStarted}>Get Started</button>
+          </div>
+
+          <div className="feature-card" style={{ display: 'flex', flexDirection: 'column', border: '2px solid var(--primary-color)', transform: 'scale(1.05)', zIndex: 1 }}>
+            <div style={{ background: 'var(--primary-color)', color: 'white', padding: '0.25rem 1rem', borderRadius: '20px', fontSize: '0.875rem', fontWeight: 600, alignSelf: 'flex-start', marginBottom: '1rem' }}>Most Popular</div>
+            <h3>Professional</h3>
+            <div style={{ margin: '0.5rem 0 1.5rem 0' }}><span style={{ fontSize: '3rem', fontWeight: 700 }}>₹2499</span><span style={{ color: 'var(--text-muted)' }}>/month</span></div>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Ideal for growing mid-sized CA firms.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', flex: 1 }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Up to 250 Clients</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Advanced Bank Anomaly Detection</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Multi-User Access (Up to 5)</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Priority Email Support</li>
+            </ul>
+            <button className="btn btn-primary" style={{ width: '100%', padding: '0.875rem' }} onClick={onGetStarted}>Start Free Trial</button>
+          </div>
+
+          <div className="feature-card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3>Enterprise</h3>
+            <div style={{ margin: '1.5rem 0' }}><span style={{ fontSize: '3rem', fontWeight: 700 }}>Custom</span></div>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>For large firms with complex requirements.</p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', flex: 1 }}>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Unlimited Clients</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Custom Integrations</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> Dedicated Account Manager</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}><Icons.CheckCircle /> 24/7 Phone Support</li>
+            </ul>
+            <button className="btn btn-secondary" style={{ width: '100%', padding: '0.875rem' }} onClick={onGetStarted}>Contact Sales</button>
           </div>
         </div>
       </div>
